@@ -1,0 +1,121 @@
+name: Checkout build benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Baseline branch, tag, or SHA (defaults to the dispatch commit)
+        type: string
+      candidate_ref:
+        description: Optional candidate branch, tag, or SHA to benchmark alongside the baseline
+        type: string
+  pull_request:
+    paths:
+      - .github/workflows/checkout-build-benchmark.yml
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    name: Benchmark / ${{ matrix.variant }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: ${{ fromJSON(inputs.candidate_ref && '["baseline", "candidate"]' || '["baseline"]') }}
+
+    steps:
+      - name: Check out benchmark ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ matrix.variant == 'candidate' && inputs.candidate_ref || inputs.baseline_ref || github.sha }}
+          # Production artifact versioning reads commit history and tags.
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+          show-progress: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+
+      - name: Time checkout build stages
+        shell: bash
+        env:
+          BENCHMARK_VARIANT: ${{ matrix.variant }}
+          NX_DAEMON: 'false'
+        run: |
+          export LC_ALL=C
+          timings="$RUNNER_TEMP/checkout-build-timings.tsv"
+          commit="$(git rev-parse HEAD)"
+
+          printf 'variant\tcommit\tstage\tseconds\texit_code\n' > "$timings"
+          {
+            printf '### Checkout build benchmark — %s\n\n' "$BENCHMARK_VARIANT"
+            printf 'Commit `%s` · Node `%s` · npm `%s` · runner image `%s`\n\n' \
+              "$commit" "$(node --version)" "$(npm --version)" "${ImageVersion:-unknown}"
+            printf '| Stage | Seconds | Exit code |\n| --- | ---: | ---: |\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          measure() {
+            local stage="$1" started elapsed seconds status
+            shift
+            printf '::group::%s\n' "$stage"
+            started="$(date +%s%N)"
+            if "$@"; then
+              status=0
+            else
+              status=$?
+            fi
+            elapsed=$(( ($(date +%s%N) - started) / 1000000 ))
+            printf -v seconds '%d.%03d' "$((elapsed / 1000))" "$((elapsed % 1000))"
+            printf '%s: %s s (exit %s)\n::endgroup::\n' "$stage" "$seconds" "$status"
+            printf '| %s | %s | %s |\n' "$stage" "$seconds" "$status" >> "$GITHUB_STEP_SUMMARY"
+            printf '%s\t%s\t%s\t%s\t%s\n' \
+              "$BENCHMARK_VARIANT" "$commit" "$stage" "$seconds" "$status" >> "$timings"
+            return "$status"
+          }
+
+          compile() {
+            local mode="$1" output="$2"
+            rm -rf -- "$output" || return "$?"
+            ./node_modules/.bin/webpack --mode "$mode" || return "$?"
+            test -s "$output/manifest.json" && test -s "$output/auto-loader.js"
+          }
+
+          measure 'Dependency install' npm ci
+          measure 'Code generation' npm run generate
+
+          result=0
+          measure 'TypeScript check (non-incremental)' \
+            ./node_modules/.bin/tsc --noEmit -p tsconfig.base.json --incremental false || result=1
+
+          rm -rf node_modules/.cache/webpack
+          if measure 'Webpack development (cold)' compile development build; then
+            measure 'Webpack development (warm restart)' compile development build || result=1
+          else
+            result=1
+          fi
+
+          rm -rf node_modules/.cache/webpack
+          if measure 'Webpack production (cold)' compile production dist; then
+            measure 'Webpack production (warm restart)' compile production dist || result=1
+          else
+            result=1
+          fi
+
+          printf '\nWebpack stages run directly after generation. Each warm restart keeps the webpack cache from its cold run and clears emitted assets.\n' >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
+
+      - name: Upload benchmark timings
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: checkout-build-timings-${{ matrix.variant }}
+          path: ${{ runner.temp }}/checkout-build-timings.tsv
+          if-no-files-found: ignore
