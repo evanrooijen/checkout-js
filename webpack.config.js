@@ -3,7 +3,7 @@ const EventEmitter = require('events');
 const { copyFileSync } = require('fs');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { join } = require('path');
-const sass = require('sass');
+const sass = require('sass-embedded');
 const { DefinePlugin } = require('webpack');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity');
@@ -252,6 +252,7 @@ function appConfig(options, argv) {
                             {
                                 loader: 'sass-loader',
                                 options: {
+                                    api: 'modern-compiler',
                                     implementation: sass,
                                     sassOptions: {
                                         silenceDeprecations,
