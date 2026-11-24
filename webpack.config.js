@@ -252,6 +252,7 @@ function appConfig(options, argv) {
                             {
                                 loader: 'sass-loader',
                                 options: {
+                                    api: 'modern-compiler',
                                     implementation: sass,
                                     sassOptions: {
                                         silenceDeprecations,
