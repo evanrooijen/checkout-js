@@ -3,6 +3,7 @@ const EventEmitter = require('events');
 const { copyFileSync } = require('fs');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { join } = require('path');
+const sass = require('sass');
 const { DefinePlugin } = require('webpack');
 const WebpackAssetsManifest = require('webpack-assets-manifest');
 const { SubresourceIntegrityPlugin } = require('webpack-subresource-integrity');
@@ -32,6 +33,12 @@ function appConfig(options, argv) {
     const mode = argv.mode || 'production';
     const isProduction = mode !== 'development';
     const outputFilename = `[name]${isProduction ? '-[contenthash:8]' : ''}`;
+    const silenceDeprecations =
+        process.env.CI === 'true'
+            ? Object.values(sass.deprecations)
+                  .filter(({ status }) => status === 'active')
+                  .map(({ id }) => id)
+            : undefined;
 
     return (isProduction ? getNextVersion() : Promise.resolve('dev')).then((appVersion) => {
         return {
@@ -245,9 +252,9 @@ function appConfig(options, argv) {
                             {
                                 loader: 'sass-loader',
                                 options: {
-                                    // eslint-disable-next-line global-require
-                                    implementation: require('sass'),
+                                    implementation: sass,
                                     sassOptions: {
+                                        silenceDeprecations,
                                         logger: {
                                             warn: (message, sassOptions) => {
                                                 // Ignore warnings from the Sass compiler from node modules
