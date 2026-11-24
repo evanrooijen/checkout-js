@@ -8,6 +8,11 @@
       "schema": "./src/generators/auto-export/schema.json",
       "description": "auto-export generator"
     },
+    "checkout-generated-files": {
+      "factory": "./src/generators/checkout-generated-files/generator",
+      "schema": "./src/generators/checkout-generated-files/schema.json",
+      "description": "Generate checkout exports and polyfills"
+    },
     "polyfill-generator": {
       "factory": "./src/generators/polyfill-generator/generator",
       "schema": "./src/generators/polyfill-generator/schema.json",
