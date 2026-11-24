@@ -12,6 +12,12 @@ on:
   pull_request:
     paths:
       - .github/workflows/checkout-build-benchmark.yml
+      - package.json
+      - package-lock.json
+      - webpack.config.js
+      - scripts/webpack/**
+      - packages/core/project.json
+      - packages/workspace-tools/src/generators/**
 
 permissions:
   contents: read
@@ -25,13 +31,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: ${{ fromJSON(inputs.candidate_ref && '["baseline", "candidate"]' || '["baseline"]') }}
+        variant: ${{ fromJSON((github.event_name == 'pull_request' || inputs.candidate_ref) && '["baseline", "candidate"]' || '["baseline"]') }}
 
     steps:
       - name: Check out benchmark ref
         uses: actions/checkout@v7
         with:
-          ref: ${{ matrix.variant == 'candidate' && inputs.candidate_ref || inputs.baseline_ref || github.sha }}
+          ref: ${{ matrix.variant == 'candidate' && (inputs.candidate_ref || github.sha) || inputs.baseline_ref || github.event.pull_request.base.sha || github.sha }}
           # Production artifact versioning reads commit history and tags.
           fetch-depth: 0
           filter: blob:none
