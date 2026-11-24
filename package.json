@@ -181,6 +181,7 @@
     "stylelint-config-standard-scss": "^7.0.1",
     "stylelint-order": "^6.0.3",
     "terser-webpack-plugin": "^5.4.0",
+    "thread-loader": "^4.0.4",
     "ts-jest": "29.4.11",
     "tslib": "^2.5.3",
     "typescript": "6.0.3",

@@ -218,6 +218,12 @@ function appConfig(options, argv) {
                         include: tsLoaderIncludes,
                         use: [
                             {
+                                loader: 'thread-loader',
+                                options: {
+                                    workers: 2,
+                                },
+                            },
+                            {
                                 loader: 'esbuild-loader',
                                 options: {
                                     // No explicit `loader` option: esbuild-loader infers
@@ -424,6 +430,12 @@ function loaderConfig(options, argv) {
                             join(__dirname, 'packages', 'utility', 'src'),
                         ],
                         use: [
+                            {
+                                loader: 'thread-loader',
+                                options: {
+                                    workers: 2,
+                                },
+                            },
                             {
                                 loader: 'esbuild-loader',
                                 options: {
