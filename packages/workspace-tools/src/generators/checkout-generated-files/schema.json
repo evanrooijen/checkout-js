@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "CheckoutGeneratedFiles",
+  "type": "object",
+  "properties": {
+    "projectName": {
+      "type": "string",
+      "description": "The checkout project to generate files for."
+    }
+  },
+  "required": ["projectName"]
+}

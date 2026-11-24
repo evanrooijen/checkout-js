@@ -94,7 +94,7 @@ function appConfig(options, argv) {
                     },
                 },
             }),
-            devtool: isProduction ? 'source-map' : 'eval-cheap-module-source-map',
+            devtool: isProduction ? 'source-map' : 'eval-source-map',
             resolve: {
                 alias,
                 extensions: ['.ts', '.tsx', '.js'],
@@ -317,7 +317,7 @@ function loaderConfig(options, argv) {
                     /^(.+?[\\/]node_modules[\\/](?!\.cache)(?!@bigcommerce[\\/]checkout-sdk)(?:@.+?[\\/])?.+?)(?:[\\/].*)?$/,
                 ],
             },
-            devtool: isProduction ? 'source-map' : 'eval-cheap-module-source-map',
+            devtool: isProduction ? 'source-map' : 'eval-source-map',
             resolve: {
                 alias,
                 extensions: ['.ts', '.tsx', '.js'],

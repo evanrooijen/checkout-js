@@ -17,6 +17,7 @@ on:
       - webpack.config.js
       - scripts/webpack/**
       - packages/core/project.json
+      - packages/workspace-tools/generators.json
       - packages/workspace-tools/src/generators/**
 
 permissions:
